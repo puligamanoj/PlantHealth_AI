@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PlantGuard AI – AI Plant Health Detector & Farming Advisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Telugu:wght@400;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --g9:#0a2f24;--g8:#0d3b2e;--g7:#1a6b4f;--g6:#1e8a5e;--g5:#22a06b;--g4:#2bb87a;--g0:#f0faf5;
+  --b6:#1a6bb8;--o5:#e07a2f;--o1:#fef4eb;--p5:#7c5cbf;--p1:#f3effa;--r5:#d64545;
+  --gy7:#2d2d2d;--gy5:#6b6b6b;--gy3:#d1d1d1;--gy1:#f5f7f6;
+  --sh:0 8px 32px rgba(13,59,46,.08);--sh2:0 16px 48px rgba(13,59,46,.12);
+  --rad:18px;--glass:rgba(255,255,255,.72);--blur:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:Inter,'Noto Sans Devanagari','Noto Sans Telugu',system-ui,sans-serif;
+  background:linear-gradient(160deg,#e8f5ef 0%,#f0f4f2 40%,#eef2f0 100%);
+  color:var(--gy7);min-height:100vh;line-height:1.55;overflow-x:hidden;
+  perspective:1200px;
+}
+
+/* ===== INTRO LEAF SYSTEM (4D) ===== */
+#leafIntro{
+  position:fixed;inset:0;z-index:9999;
+  background:radial-gradient(ellipse at center,#0d3b2e 0%,#061a14 70%,#020c09 100%);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .9s cubic-bezier(.4,0,.2,1),visibility .9s;
+}
+#leafIntro.done{opacity:0;visibility:hidden;pointer-events:none}
+#leafStage{
+  position:relative;width:min(90vw,420px);height:min(90vw,420px);
+  transform-style:preserve-3d;
+}
+.leaf-part{
+  position:absolute;left:50%;top:50%;
+  width:72px;height:110px;
+  margin-left:-36px;margin-top:-55px;
+  transform-origin:50% 90%;
+  transition:transform .15s ease-out;
+  will-change:transform;
+  filter:drop-shadow(0 8px 16px rgba(0,0,0,.35));
+  pointer-events:none;
+}
+.leaf-part svg{width:100%;height:100%;display:block}
+.leaf-part path{
+  fill:url(#leafGrad);
+  stroke:rgba(10,50,35,.4);
+  stroke-width:1.2;
+}
+#leafHint{
+  position:absolute;bottom:12%;left:50%;transform:translateX(-50%);
+  color:rgba(255,255,255,.75);font-size:.85rem;font-weight:500;
+  letter-spacing:.04em;text-align:center;opacity:0;
+  transition:opacity .6s .8s;pointer-events:none;
+  text-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+#leafIntro.assembled #leafHint{opacity:1}
+#leafSkip{
+  position:absolute;top:1.5rem;right:1.5rem;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+  color:#fff;padding:.45rem 1rem;border-radius:999px;font-size:.8rem;
+  font-weight:600;cursor:pointer;font-family:inherit;backdrop-filter:blur(8px);
+  transition:all .25s;
+}
+#leafSkip:hover{background:rgba(255,255,255,.22);transform:translateY(-1px)}
+#leafBrand{
+  position:absolute;top:18%;left:50%;transform:translateX(-50%);
+  text-align:center;color:#fff;opacity:0;transition:opacity .7s .3s;
+  pointer-events:none;
+}
+#leafIntro.assembled #leafBrand{opacity:1}
+#leafBrand .logo{font-size:2.4rem;margin-bottom:.3rem;filter:drop-shadow(0 4px 12px rgba(34,160,107,.5))}
+#leafBrand h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em}
+#leafBrand p{font-size:.8rem;opacity:.7;margin-top:.2rem}
+
+/* ===== NAV ===== */
+.navbar{
+  background:linear-gradient(135deg,rgba(10,47,36,.95),rgba(13,59,46,.98));
+  color:#fff;padding:.7rem 1.4rem;display:flex;align-items:center;
+  justify-content:space-between;gap:1rem;position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(16px);box-shadow:0 4px 24px rgba(0,0,0,.15);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.nav-brand{display:flex;align-items:center;gap:.65rem}
+.nav-logo{
+  width:40px;height:40px;
+  background:linear-gradient(145deg,#2bb87a,#1a8a5e);
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:1.25rem;box-shadow:0 4px 14px rgba(34,160,107,.4);
+  transform:rotate(-4deg);
+}
+.nav-title{font-weight:800;font-size:1.2rem;letter-spacing:-.02em}
+.nav-subtitle{font-size:.68rem;opacity:.7;letter-spacing:.02em}
+.nav-links{display:flex;gap:.3rem;flex-wrap:wrap}
+.nav-link{
+  display:flex;align-items:center;gap:.4rem;padding:.45rem .95rem;
+  border-radius:999px;color:rgba(255,255,255,.82);font-size:.85rem;
+  font-weight:500;cursor:pointer;border:none;background:transparent;font-family:inherit;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+}
+.nav-link:hover{background:rgba(255,255,255,.12);color:#fff;transform:translateY(-1px)}
+.nav-link.active{background:var(--g5);color:#fff;box-shadow:0 4px 14px rgba(34,160,107,.35)}
+.lang-select{
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  color:#fff;padding:.4rem .8rem;border-radius:10px;font-size:.82rem;
+  cursor:pointer;font-family:inherit;backdrop-filter:blur(6px);
+}
+.lang-select option{color:#111}
+
+/* ===== MAIN ===== */
+.main{max-width:1280px;margin:0 auto;padding:1.6rem 1.25rem 2.5rem}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;margin-bottom:1.4rem}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr}.nav-links{display:none}}
+
+/* Glass cards with depth */
+.hero-card,.result-card,.result-empty,.info-card,.section-panel{
+  background:var(--glass);border-radius:var(--rad);padding:1.55rem;
+  box-shadow:var(--sh);backdrop-filter:blur(var(--blur));
+  border:1px solid rgba(255,255,255,.55);
+  transition:transform .35s cubic-bezier(.4,0,.2,1),box-shadow .35s;
+  transform-style:preserve-3d;
+}
+.hero-card:hover,.info-card:hover{
+  transform:translateY(-4px) rotateX(2deg);
+  box-shadow:var(--sh2);
+}
+.hero-title{font-size:1.55rem;font-weight:800;line-height:1.28;margin-bottom:.5rem;
+  background:linear-gradient(135deg,var(--g8),var(--g6));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-desc{color:var(--gy5);font-size:.92rem;margin-bottom:1.1rem}
+.feature-pills{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.3rem}
+.pill{
+  padding:.32rem .75rem;border-radius:999px;font-size:.76rem;font-weight:600;
+  background:var(--g0);color:var(--g7);border:1px solid rgba(34,160,107,.15);
+  transition:transform .2s;
+}
+.pill:hover{transform:scale(1.05)}
+.pill.blue{background:#eef5fc;color:#1a6bb8;border-color:rgba(26,107,184,.15)}
+.pill.orange{background:#fef4eb;color:#c45e1a;border-color:rgba(196,94,26,.15)}
+.pill.teal{background:#e6f7f2;color:#0d7a5f;border-color:rgba(13,122,95,.15)}
+
+.upload-zone{
+  border:2px dashed #a8d4bc;border-radius:16px;padding:1.9rem;text-align:center;
+  background:linear-gradient(180deg,#f8fcfa,#eef9f3);cursor:pointer;
+  transition:all .3s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;
+}
+.upload-zone::before{
+  content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(34,160,107,.08),transparent 70%);
+  opacity:0;transition:opacity .3s;
+}
+.upload-zone:hover::before,.upload-zone.dragover::before{opacity:1}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--g5);background:var(--g0);transform:scale(1.01)}
+.upload-zone.has-image{border-style:solid;border-color:var(--g5);padding:1.1rem}
+.upload-icon{font-size:2.2rem;margin-bottom:.5rem;animation:floatY 2.8s ease-in-out infinite}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.4rem;
+  padding:.62rem 1.25rem;border-radius:12px;font-weight:600;font-size:.88rem;
+  border:none;cursor:pointer;font-family:inherit;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+}
+.btn-primary{background:linear-gradient(135deg,var(--g5),var(--g6));color:#fff;box-shadow:0 4px 16px rgba(34,160,107,.3)}
+.btn-primary:hover{background:linear-gradient(135deg,var(--g6),var(--g7));transform:translateY(-2px);box-shadow:0 6px 20px rgba(34,160,107,.4)}
+.btn-blue{background:linear-gradient(135deg,#1a6bb8,#1e7fd0);color:#fff;box-shadow:0 4px 14px rgba(26,107,184,.3)}
+.btn-blue:hover{transform:translateY(-2px)}
+.btn-orange{background:linear-gradient(135deg,#e07a2f,#e8903f);color:#fff;box-shadow:0 4px 14px rgba(224,122,47,.3)}
+.btn-orange:hover{transform:translateY(-2px)}
+.btn-outline{background:#fff;border:1.5px solid var(--gy3);color:var(--gy7)}
+.btn-outline:hover{border-color:var(--g5);color:var(--g7)}
+#fileInput{display:none}
+.preview-img{max-width:100%;max-height:180px;border-radius:12px;margin-bottom:.5rem;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.analyze-btn-wrap{margin-top:1rem;display:none}.analyze-btn-wrap.show{display:block}
+.result-card{display:none}.result-card.show{display:block;animation:slideUp .5s cubic-bezier(.4,0,.2,1)}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.result-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.result-title{font-weight:700;font-size:1.05rem}
+.badge-complete{background:linear-gradient(135deg,#e6f7ef,#d4f0e3);color:var(--g7);font-size:.74rem;font-weight:600;padding:.3rem .75rem;border-radius:999px;border:1px solid rgba(34,160,107,.2)}
+.result-body{display:grid;grid-template-columns:130px 1fr;gap:1.25rem}
+@media(max-width:500px){.result-body{grid-template-columns:1fr}}
+.result-img-wrap{border-radius:14px;overflow:hidden;background:#f0f0f0;aspect-ratio:1;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.result-img-wrap img{width:100%;height:100%;object-fit:cover}
+.disease-name{font-size:1.12rem;font-weight:700}.disease-sci{font-style:italic;color:var(--gy5);font-size:.88rem;margin-bottom:.55rem}
+.confidence-bar-wrap{display:flex;align-items:center;gap:.5rem;margin:.4rem 0 .6rem}
+.confidence-bar{flex:1;height:9px;background:#e8e8e8;border-radius:999px;overflow:hidden}
+.confidence-fill{height:100%;background:linear-gradient(90deg,#22a06b,#2bb87a);border-radius:999px;transition:width .9s cubic-bezier(.4,0,.2,1)}
+.confidence-pct{font-weight:700;color:var(--g6)}
+.disease-tag{display:inline-block;background:#fde8e8;color:var(--r5);font-size:.74rem;font-weight:600;padding:.25rem .7rem;border-radius:8px;margin-bottom:.55rem}
+.disease-desc{font-size:.875rem;color:var(--gy7);margin-bottom:.75rem}
+.advice-box{background:linear-gradient(135deg,#eef9f3,#e6f5ed);border-radius:12px;padding:.75rem 1rem;font-size:.85rem;color:var(--g7);display:flex;gap:.5rem;border:1px solid rgba(34,160,107,.12)}
+.result-empty{text-align:center;color:var(--gy5);padding:2.6rem 1.5rem}
+.cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.1rem;margin-bottom:2rem}
+@media(max-width:1000px){.cards-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:550px){.cards-grid{grid-template-columns:1fr}}
+.info-card{display:flex;flex-direction:column;position:relative;overflow:hidden}
+.info-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,currentColor,transparent);opacity:.35;
+}
+.info-card.treatment{background:linear-gradient(180deg,rgba(240,250,245,.95),rgba(255,255,255,.85) 45%);color:var(--g7)}
+.info-card.fertilizer{background:linear-gradient(180deg,rgba(238,245,252,.95),rgba(255,255,255,.85) 45%);color:var(--b6)}
+.info-card.farming{background:linear-gradient(180deg,rgba(254,246,238,.95),rgba(255,255,255,.85) 45%);color:var(--o5)}
+.info-card.actions{background:linear-gradient(180deg,rgba(245,240,250,.95),rgba(255,255,255,.85) 45%);color:var(--p5)}
+.card-header{font-weight:700;font-size:.95rem;margin-bottom:1rem}
+.card-list{list-style:none;flex:1;margin-bottom:1rem}
+.card-list li{display:flex;gap:.5rem;font-size:.84rem;color:var(--gy7);margin-bottom:.5rem}
+.card-list li .check{color:var(--g5)}
+.fert-item{display:flex;gap:.5rem;margin-bottom:.65rem;font-size:.84rem}
+.fert-item .dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.fert-item .dot.blue{background:#3b82f6}.fert-item .dot.orange{background:#f59e0b}.fert-item .dot.green{background:#22c55e}
+.fert-item strong{display:block}.fert-item span{color:var(--gy5);font-size:.78rem}
+.action-btn{
+  display:flex;align-items:center;gap:.5rem;width:100%;padding:.55rem .9rem;
+  border:1.5px solid #e5e5e5;border-radius:12px;background:#fff;font-size:.84rem;
+  font-weight:500;color:var(--gy7);cursor:pointer;margin-bottom:.45rem;font-family:inherit;text-align:left;
+  transition:all .22s;
+}
+.action-btn:hover{border-color:var(--p5);color:var(--p5);background:var(--p1);transform:translateX(3px)}
+.card-btn{width:100%;margin-top:auto}
+.why-section{
+  background:linear-gradient(160deg,var(--g9),#0a2a20);color:#fff;
+  padding:2.4rem 1.5rem;margin:0 -1.25rem -2.5rem;position:relative;overflow:hidden;
+}
+.why-section::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 20% 50%,rgba(34,160,107,.15),transparent 50%),
+              radial-gradient(ellipse at 80% 20%,rgba(43,184,122,.1),transparent 40%);
+  pointer-events:none;
+}
+.why-title{text-align:center;font-size:1.35rem;font-weight:800;margin-bottom:1.6rem;position:relative}
+.why-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.3rem;max-width:1280px;margin:0 auto;position:relative}
+@media(max-width:800px){.why-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:450px){.why-grid{grid-template-columns:1fr}}
+.why-item{text-align:center;padding:1rem;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);transition:transform .3s,background .3s}
+.why-item:hover{transform:translateY(-4px);background:rgba(255,255,255,.08)}
+.why-icon{width:52px;height:52px;background:rgba(255,255,255,.1);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto .7rem;font-size:1.35rem;transition:transform .3s}
+.why-item:hover .why-icon{transform:scale(1.1) rotate(-5deg)}
+.why-item h4{font-size:.9rem;margin-bottom:.3rem}.why-item p{font-size:.78rem;opacity:.72}
+.footer{text-align:center;padding:1.3rem;font-size:.8rem;opacity:.55;margin-top:1.4rem;position:relative}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(6px)}
+.modal-overlay.show{display:flex;animation:fadeIn .25s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border-radius:20px;max-width:540px;width:100%;max-height:85vh;overflow-y:auto;padding:1.6rem;box-shadow:0 24px 64px rgba(0,0,0,.2);animation:modalIn .35s cubic-bezier(.4,0,.2,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(.94) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal h2{font-size:1.15rem;margin-bottom:1rem}
+.modal p,.modal li{font-size:.9rem;color:var(--gy7);line-height:1.55}
+.modal ul{padding-left:1.2rem;margin:.4rem 0 .8rem}
+.modal-close{float:right;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--gy5);line-height:1}
+.modal-section{background:linear-gradient(135deg,#f7f9f8,#f2f5f3);border-radius:12px;padding:.85rem 1.05rem;margin-bottom:.7rem;border:1px solid rgba(0,0,0,.04)}
+.modal-section strong{display:block;margin-bottom:.25rem}
+.spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(90px);background:linear-gradient(135deg,var(--g7),var(--g6));color:#fff;padding:.75rem 1.5rem;border-radius:12px;font-size:.9rem;z-index:300;transition:transform .35s cubic-bezier(.4,0,.2,1);max-width:90%;text-align:center;box-shadow:0 8px 28px rgba(26,107,79,.35)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.section-panel{display:none;margin-bottom:1.25rem}.section-panel.show{display:block;animation:slideUp .4s}
+.history-item{display:flex;gap:1rem;padding:.9rem;border:1px solid rgba(0,0,0,.06);border-radius:14px;margin-bottom:.55rem;background:rgba(255,255,255,.6);transition:transform .2s,box-shadow .2s}
+.history-item:hover{transform:translateX(4px);box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.history-item img{width:54px;height:54px;object-fit:cover;border-radius:10px}
+.history-item .info strong{display:block;font-size:.9rem}.history-item .info span{font-size:.8rem;color:var(--gy5)}
+.crop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1rem}
+.crop-card{
+  border:1.5px solid rgba(0,0,0,.06);border-radius:14px;padding:1.15rem;text-align:center;cursor:pointer;
+  background:rgba(255,255,255,.7);transition:all .28s cubic-bezier(.4,0,.2,1);
+}
+.crop-card:hover{border-color:var(--g5);background:var(--g0);transform:translateY(-5px) scale(1.03);box-shadow:0 12px 28px rgba(34,160,107,.15)}
+.crop-card .emoji{font-size:2rem}.crop-card strong{display:block;font-size:.9rem;margin-top:.3rem}.crop-card span{font-size:.74rem;color:var(--gy5)}
+.guide-block{padding:1.05rem;border-radius:12px;margin-bottom:.7rem;border:1px solid rgba(0,0,0,.04)}.guide-block strong{display:block;margin-bottom:.3rem}.guide-block p{font-size:.9rem;color:var(--gy7)}
+.voice-btn{
+  display:inline-flex;align-items:center;gap:.45rem;margin-top:.75rem;padding:.5rem 1.1rem;
+  border-radius:999px;border:1.5px solid #b8d9c8;background:linear-gradient(180deg,#f0faf5,#e8f7ef);
+  color:var(--g7);font-size:.85rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .25s;
+}
+.voice-btn:hover{background:var(--g5);color:#fff;border-color:var(--g5);transform:translateY(-2px);box-shadow:0 6px 18px rgba(34,160,107,.3)}
+.voice-btn.speaking{background:var(--g6);color:#fff;border-color:var(--g6);animation:pulse-voice 1.2s ease-in-out infinite}
+.voice-btn .voice-icon{font-size:1.1rem;line-height:1}
+@keyframes pulse-voice{0%,100%{box-shadow:0 0 0 0 rgba(34,160,107,.4)}50%{box-shadow:0 0 0 10px rgba(34,160,107,0)}}
+
+/* Ambient particles for depth */
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.ambient span{
+  position:absolute;width:6px;height:6px;border-radius:50%;
+  background:rgba(34,160,107,.15);animation:drift linear infinite;
+}
+@keyframes drift{
+  0%{transform:translateY(100vh) scale(0);opacity:0}
+  10%{opacity:1}
+  90%{opacity:.6}
+  100%{transform:translateY(-20vh) scale(1);opacity:0}
+}
+</style>
+</head>
+<body>
+<!-- Ambient depth particles -->
+<div class="ambient" id="ambient"></div>
+
+<!-- ===== 4D LEAF INTRO ===== -->
+<div id="leafIntro">
+  <button id="leafSkip" onclick="finishIntro()">Skip →</button>
+  <div id="leafBrand">
+    <div class="logo">🌿</div>
+    <h1>PlantGuard AI</h1>
+    <p>AI Plant Health Detector</p>
+  </div>
+  <div id="leafStage">
+    <!-- 8 leaf parts will be injected by JS -->
+  </div>
+  <div id="leafHint">Move cursor · parts scatter · return to center to reassemble</div>
+</div>
+
+<nav class="navbar">
+<div class="nav-brand"><div class="nav-logo">🌿</div><div><div class="nav-title" data-i18n="brand">PlantGuard AI</div><div class="nav-subtitle" data-i18n="brandSub">AI Plant Health Detector & Farming Advisor</div></div></div>
+<div class="nav-links">
+<button class="nav-link active" data-s="home" onclick="showSec('home')">🏠 <span data-i18n="navHome">Home</span></button>
+<button class="nav-link" onclick="showSec('home');document.getElementById('fileInput').click()">📷 <span data-i18n="navDetect">Detect Disease</span></button>
+<button class="nav-link" data-s="guide" onclick="showSec('guide')">📖 <span data-i18n="navGuide">Farming Guide</span></button>
+<button class="nav-link" data-s="crop" onclick="showSec('crop')">🍃 <span data-i18n="navCrop">Crop Info</span></button>
+<button class="nav-link" data-s="history" onclick="showSec('history')">🕐 <span data-i18n="navHistory">History</span></button>
+</div>
+<select class="lang-select" id="langSelect" onchange="setLang(this.value)">
+<option value="en">🌐 English</option>
+<option value="hi">🌐 हिंदी</option>
+<option value="te">🌐 తెలుగు</option>
+</select>
+</nav>
+<main class="main">
+<div id="sec-home">
+<div class="hero-grid">
+<div class="hero-card">
+<h1 class="hero-title" data-i18n="heroTitle">AI-Powered Plant Health Detection & Farming Advisor</h1>
+<p class="hero-desc" data-i18n="heroDesc">Upload a photo of your plant leaf to detect disease and get expert advice on treatment, fertilizers, and proper farming practices.</p>
+<div class="feature-pills">
+<span class="pill">✓ <span data-i18n="pill1">Accurate Detection</span></span>
+<span class="pill blue">💊 <span data-i18n="pill2">Treatment Tips</span></span>
+<span class="pill orange">🧪 <span data-i18n="pill3">Fertilizer Guide</span></span>
+<span class="pill teal">🌱 <span data-i18n="pill4">Farming Advice</span></span>
+</div>
+<div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="event.preventDefault();this.classList.remove('dragover');if(event.dataTransfer.files[0])procFile(event.dataTransfer.files[0])">
+<div id="upPlaceholder">
+<div class="upload-icon">☁️↑</div>
+<div class="upload-text" data-i18n="uploadText">Drag & Drop your plant image here</div>
+<div class="upload-or" data-i18n="uploadOr">or</div>
+<button class="btn btn-primary" type="button" onclick="event.stopPropagation();document.getElementById('fileInput').click()"><span data-i18n="chooseImg">Choose Image</span></button>
+<div class="upload-hint" data-i18n="uploadHint">JPG, JPEG, PNG (Max 5MB)</div>
+</div>
+<div id="upPreview" style="display:none">
+<img id="previewImg" class="preview-img" alt="preview"/>
+<div style="font-size:.85rem;color:var(--gy5);margin-bottom:.4rem" id="fileName"></div>
+<button class="btn btn-outline" type="button" onclick="event.stopPropagation();resetUp()"><span data-i18n="changeImg">Change Image</span></button>
+</div>
+</div>
+<div class="analyze-btn-wrap" id="analyzeWrap">
+<button class="btn btn-primary" style="width:100%;padding:.85rem" id="analyzeBtn" onclick="analyze()">🔍 <span data-i18n="analyzeBtn">Analyze Plant Health</span></button>
+</div>
+<input type="file" id="fileInput" accept="image/jpeg,image/jpg,image/png" onchange="if(this.files[0])procFile(this.files[0])"/>
+</div>
+<div id="resultEmpty" class="result-empty">
+<div style="font-size:2.6rem;margin-bottom:.5rem;opacity:.45">🌿</div>
+<h3 style="margin-bottom:.3rem;color:var(--gy7)" data-i18n="noDetect">No Detection Yet</h3>
+<p style="font-size:.9rem" data-i18n="noDetectDesc">Upload a plant leaf image to get AI-powered disease detection and farming advice.</p>
+</div>
+<div class="result-card" id="resultCard">
+<div class="result-header">
+<div class="result-title">📊 <span data-i18n="detectResult">Detection Result</span></div>
+<span class="badge-complete" data-i18n="analysisDone">Analysis Complete</span>
+</div>
+<div class="result-body">
+<div class="result-img-wrap"><img id="resultImg" src="" alt="result"/></div>
+<div>
+<div class="disease-name" id="dName">—</div>
+<div class="disease-sci" id="dSci">—</div>
+<div style="font-size:.8rem;color:var(--gy5)" data-i18n="confidence">Confidence Score</div>
+<div class="confidence-bar-wrap"><div class="confidence-bar"><div class="confidence-fill" id="cFill" style="width:0%"></div></div><span class="confidence-pct" id="cPct">0%</span></div>
+<span class="disease-tag" id="dTag">—</span>
+<p class="disease-desc" id="dDesc">—</p>
+<div class="advice-box"><span>💡</span><span id="dAdvice">—</span></div>
+<button type="button" class="voice-btn" id="voiceBtn" onclick="speakResult()" title="Listen">
+<span class="voice-icon">🔊</span>
+<span data-i18n="voiceListen">Listen</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="cards-grid" id="bottomCards" style="opacity:.4;pointer-events:none">
+<div class="info-card treatment">
+<div class="card-header treatment">🛡️ <span data-i18n="cardTreat">Treatment & Care Tips</span></div>
+<ul class="card-list" id="treatList"><li><span class="check">✓</span> —</li></ul>
+<button class="btn btn-primary card-btn" onclick="openModal('treat')"><span data-i18n="viewDetails">View Details</span> →</button>
+</div>
+<div class="info-card fertilizer">
+<div class="card-header fertilizer">🧪 <span data-i18n="cardFert">Fertilizer Recommendation</span></div>
+<div id="fertList"><div class="fert-item"><span class="dot blue"></span><div><strong>—</strong><span>—</span></div></div></div>
+<button class="btn btn-blue card-btn" onclick="openModal('fert')"><span data-i18n="viewDetails">View Details</span> →</button>
+</div>
+<div class="info-card farming">
+<div class="card-header farming">🌱 <span data-i18n="cardFarm">Farming Guide</span></div>
+<ul class="card-list" id="farmList"><li><span class="check">✓</span> —</li></ul>
+<button class="btn btn-orange card-btn" onclick="openModal('farm')"><span data-i18n="viewGuide">View Complete Guide</span> →</button>
+</div>
+<div class="info-card actions">
+<div class="card-header actions">⚡ <span data-i18n="cardActions">Quick Actions</span></div>
+<button class="action-btn" onclick="document.getElementById('fileInput').click()">📷 <span data-i18n="detectAnother">Detect Another Plant</span></button>
+<button class="action-btn" onclick="showSec('history')">🕐 <span data-i18n="viewHistory">View History</span></button>
+<button class="action-btn" onclick="showSec('crop')">🍃 <span data-i18n="cropInfo">Crop Information</span></button>
+<button class="action-btn" onclick="dlReport()">⬇️ <span data-i18n="dlReport">Download Report</span></button>
+</div>
+</div>
+</div>
+<div class="section-panel" id="sec-guide">
+<h2 style="margin-bottom:1rem" id="guideTitle">📖 <span data-i18n="fullGuide">Complete Farming Guide</span></h2>
+<div id="guideContent"></div>
+<button class="btn btn-primary" style="margin-top:1rem" onclick="showSec('home')">← <span data-i18n="backHome">Back to Home</span></button>
+</div>
+<div class="section-panel" id="sec-crop">
+<h2 style="margin-bottom:1rem">🍃 <span data-i18n="cropTitle">Crop Information</span></h2>
+<p style="color:var(--gy5);margin-bottom:1rem;font-size:.9rem" data-i18n="cropDesc">Select a crop to view detailed growing information and best practices.</p>
+<div class="crop-grid" id="cropGrid"></div>
+<button class="btn btn-primary" style="margin-top:1rem" onclick="showSec('home')">← <span data-i18n="backHome">Back to Home</span></button>
+</div>
+<div class="section-panel" id="sec-history">
+<h2 style="margin-bottom:1rem">🕐 <span data-i18n="histTitle">Detection History</span></h2>
+<div id="histList"><p style="color:var(--gy5);font-size:.9rem" data-i18n="histEmpty">No detections yet. Upload a plant image to get started.</p></div>
+<button class="btn btn-primary" style="margin-top:1rem" onclick="showSec('home')">← <span data-i18n="backHome">Back to Home</span></button>
+</div>
+</main>
+<section class="why-section">
+<div style="max-width:1280px;margin:0 auto">
+<h2 class="why-title" data-i18n="whyTitle">Why Choose PlantGuard AI?</h2>
+<div class="why-grid">
+<div class="why-item"><div class="why-icon">🧠</div><h4 data-i18n="why1t">AI-Powered Accuracy</h4><p data-i18n="why1d">Advanced models trained on thousands of plant images.</p></div>
+<div class="why-item"><div class="why-icon">👨‍🌾</div><h4 data-i18n="why2t">Expert Advice</h4><p data-i18n="why2d">Recommendations based on agricultural expert knowledge.</p></div>
+<div class="why-item"><div class="why-icon">🍃</div><h4 data-i18n="why3t">Complete Farming Solution</h4><p data-i18n="why3d">From disease detection to farming guidance – all in one place.</p></div>
+<div class="why-item"><div class="why-icon">🌐</div><h4 data-i18n="why4t">Multi-Language Support</h4><p data-i18n="why4d">Available in English, Hindi and Telugu for farmers.</p></div>
+</div>
+<div class="footer">© 2024 PlantGuard AI · <span data-i18n="devWith">Developed with ❤️ for Farmers</span></div>
+</div>
+</section>
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+<div class="modal"><button class="modal-close" onclick="closeModal()">×</button><div id="modalBody"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== 4D LEAF INTRO SYSTEM ===== */
+const LEAF_DIRS = [
+  { ang: -90,  label: 'N'  },  // top
+  { ang: -45,  label: 'NE' },
+  { ang: 0,    label: 'E'  },
+  { ang: 45,   label: 'SE' },
+  { ang: 90,   label: 'S'  },
+  { ang: 135,  label: 'SW' },
+  { ang: 180,  label: 'W'  },
+  { ang: -135, label: 'NW' }
+];
+const FLY_DIST = 380; // px from center at start
+let leafParts = [];
+let introAssembled = false;
+let introActive = true;
+let mouseX = 0, mouseY = 0;
+let centerX = 0, centerY = 0;
+
+function createLeafSVG() {
+  // Shared gradient defined once in stage
+  return `
+  <svg viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#3dd68c"/>
+        <stop offset="40%" stop-color="#22a06b"/>
+        <stop offset="100%" stop-color="#1a6b4f"/>
+      </linearGradient>
+      <linearGradient id="veinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(10,50,35,0.35)"/>
+        <stop offset="100%" stop-color="rgba(10,50,35,0.15)"/>
+      </linearGradient>
+    </defs>
+    <!-- Leaf blade shape (half-leaf style that tiles into full leaf) -->
+    <path d="M40 8 C28 18, 12 38, 10 58 C8 78, 18 98, 40 112 C62 98, 72 78, 70 58 C68 38, 52 18, 40 8 Z"/>
+    <!-- Main vein -->
+    <path d="M40 18 L40 105" fill="none" stroke="url(#veinGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <!-- Side veins -->
+    <path d="M40 35 Q28 42 22 50" fill="none" stroke="rgba(10,50,35,0.25)" stroke-width="1.3"/>
+    <path d="M40 35 Q52 42 58 50" fill="none" stroke="rgba(10,50,35,0.25)" stroke-width="1.3"/>
+    <path d="M40 55 Q26 62 20 72" fill="none" stroke="rgba(10,50,35,0.22)" stroke-width="1.2"/>
+    <path d="M40 55 Q54 62 60 72" fill="none" stroke="rgba(10,50,35,0.22)" stroke-width="1.2"/>
+    <path d="M40 75 Q30 82 26 90" fill="none" stroke="rgba(10,50,35,0.18)" stroke-width="1.1"/>
+    <path d="M40 75 Q50 82 54 90" fill="none" stroke="rgba(10,50,35,0.18)" stroke-width="1.1"/>
+  </svg>`;
+}
+
+function initLeafIntro() {
+  const stage = document.getElementById('leafStage');
+  stage.innerHTML = '';
+  leafParts = [];
+
+  // Unique gradient ids per part to avoid conflict
+  LEAF_DIRS.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'leaf-part';
+    el.dataset.idx = i;
+    const gradId = 'lg' + i;
+    el.innerHTML = `
+    <svg viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#4ae090"/>
+          <stop offset="45%" stop-color="#22a06b"/>
+          <stop offset="100%" stop-color="#147a52"/>
+        </linearGradient>
+      </defs>
+      <path d="M40 8 C28 18, 12 38, 10 58 C8 78, 18 98, 40 112 C62 98, 72 78, 70 58 C68 38, 52 18, 40 8 Z" fill="url(#${gradId})" stroke="rgba(8,40,28,0.45)" stroke-width="1.4"/>
+      <path d="M40 18 L40 105" fill="none" stroke="rgba(8,40,28,0.35)" stroke-width="2.1" stroke-linecap="round"/>
+      <path d="M40 35 Q28 42 22 50 M40 35 Q52 42 58 50 M40 55 Q26 62 20 72 M40 55 Q54 62 60 72 M40 75 Q30 82 26 90 M40 75 Q50 82 54 90" fill="none" stroke="rgba(8,40,28,0.22)" stroke-width="1.15"/>
+    </svg>`;
+    stage.appendChild(el);
+
+    const rad = d.ang * Math.PI / 180;
+    const startX = Math.cos(rad) * FLY_DIST;
+    const startY = Math.sin(rad) * FLY_DIST;
+    // Final assembled offsets: slight radial spread so they look like one leaf cluster
+    const finalR = 18 + (i % 2) * 6;
+    const finalX = Math.cos(rad) * finalR;
+    const finalY = Math.sin(rad) * finalR;
+    const rot = d.ang + 90; // point outward then settle
+
+    leafParts.push({
+      el, ang: d.ang, rad,
+      startX, startY, finalX, finalY,
+      rot, curX: startX, curY: startY, curRot: rot + (Math.random()*40-20),
+      scatterMul: 0.85 + Math.random() * 0.3
+    });
+
+    // Start far away
+    el.style.transform = `translate(${startX}px, ${startY}px) rotate(${leafParts[i].curRot}deg) scale(0.55)`;
+  });
+
+  // Fly-in animation
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      leafParts.forEach((p, i) => {
+        setTimeout(() => {
+          p.el.style.transition = 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
+          p.curX = p.finalX; p.curY = p.finalY; p.curRot = p.rot;
+          p.el.style.transform = `translate(${p.finalX}px, ${p.finalY}px) rotate(${p.rot}deg) scale(1)`;
+        }, i * 70);
+      });
+      setTimeout(() => {
+        introAssembled = true;
+        document.getElementById('leafIntro').classList.add('assembled');
+        // Soft pulse
+        leafParts.forEach(p => {
+          p.el.style.transition = 'transform 0.18s ease-out, filter 0.3s';
+        });
+      }, 8 * 70 + 1150);
+    }, 180);
+  });
+
+  // Track mouse for scatter
+  window.addEventListener('mousemove', onLeafMouse, { passive: true });
+  window.addEventListener('touchmove', e => {
+    if (e.touches[0]) onLeafMouse({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+  }, { passive: true });
+}
+
+function onLeafMouse(e) {
+  if (!introActive || !introAssembled) return;
+  mouseX = e.clientX; mouseY = e.clientY;
+  const rect = document.getElementById('leafStage').getBoundingClientRect();
+  centerX = rect.left + rect.width / 2;
+  centerY = rect.top + rect.height / 2;
+
+  const dx = mouseX - centerX;
+  const dy = mouseY - centerY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  // Max scatter distance ~ 280px of mouse travel
+  const scatter = Math.min(1, dist / 260);
+
+  leafParts.forEach(p => {
+    // Scatter outward along original angle + slight mouse bias
+    const outX = Math.cos(p.rad) * scatter * 210 * p.scatterMul;
+    const outY = Math.sin(p.rad) * scatter * 210 * p.scatterMul;
+    // Add a little mouse-direction influence
+    const biasX = dx * 0.12 * scatter;
+    const biasY = dy * 0.12 * scatter;
+    const tx = p.finalX + outX + biasX;
+    const ty = p.finalY + outY + biasY;
+    const rot = p.rot + scatter * (p.ang * 0.25 + (Math.random() - 0.5) * 8);
+    const sc = 1 - scatter * 0.18;
+    p.el.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg) scale(${sc})`;
+  });
+}
+
+function finishIntro() {
+  if (!introActive) return;
+  introActive = false;
+  window.removeEventListener('mousemove', onLeafMouse);
+  const intro = document.getElementById('leafIntro');
+  intro.classList.add('done');
+  setTimeout(() => { intro.style.display = 'none'; }, 950);
+}
+
+// Auto-finish after user has time to play (optional – keep interactive until skip or 12s)
+setTimeout(() => {
+  if (introActive && introAssembled) {
+    // gentle auto-continue after 14s of interaction
+  }
+}, 14000);
+
+/* Ambient particles */
+(function(){
+  const amb = document.getElementById('ambient');
+  for (let i = 0; i < 18; i++) {
+    const s = document.createElement('span');
+    s.style.left = Math.random() * 100 + '%';
+    s.style.animationDuration = (12 + Math.random() * 18) + 's';
+    s.style.animationDelay = (Math.random() * 12) + 's';
+    s.style.width = s.style.height = (3 + Math.random() * 5) + 'px';
+    amb.appendChild(s);
+  }
+})();
+
+/* ===== APP LOGIC (same DB + i18n) ===== */
+const I18N={
+en:{brand:"PlantGuard AI",brandSub:"AI Plant Health Detector & Farming Advisor",navHome:"Home",navDetect:"Detect Disease",navGuide:"Farming Guide",navCrop:"Crop Info",navHistory:"History",heroTitle:"AI-Powered Plant Health Detection & Farming Advisor",heroDesc:"Upload a photo of your plant leaf to detect disease and get expert advice on treatment, fertilizers, and proper farming practices.",pill1:"Accurate Detection",pill2:"Treatment Tips",pill3:"Fertilizer Guide",pill4:"Farming Advice",uploadText:"Drag & Drop your plant image here",uploadOr:"or",chooseImg:"Choose Image",uploadHint:"JPG, JPEG, PNG (Max 5MB)",changeImg:"Change Image",analyzeBtn:"Analyze Plant Health",noDetect:"No Detection Yet",noDetectDesc:"Upload a plant leaf image to get AI-powered disease detection and farming advice.",detectResult:"Detection Result",analysisDone:"Analysis Complete",confidence:"Confidence Score",cardTreat:"Treatment & Care Tips",cardFert:"Fertilizer Recommendation",cardFarm:"Farming Guide",cardActions:"Quick Actions",viewDetails:"View Details",viewGuide:"View Complete Guide",detectAnother:"Detect Another Plant",viewHistory:"View History",cropInfo:"Crop Information",dlReport:"Download Report",whyTitle:"Why Choose PlantGuard AI?",why1t:"AI-Powered Accuracy",why1d:"Advanced models trained on thousands of plant images.",why2t:"Expert Advice",why2d:"Recommendations based on agricultural expert knowledge.",why3t:"Complete Farming Solution",why3d:"From disease detection to farming guidance – all in one place.",why4t:"Multi-Language Support",why4d:"Available in English, Hindi and Telugu for farmers.",devWith:"Developed with ❤️ for Farmers",fullGuide:"Complete Farming Guide",backHome:"Back to Home",cropTitle:"Crop Information",cropDesc:"Select a crop to view detailed growing information and best practices.",histTitle:"Detection History",histEmpty:"No detections yet. Upload a plant image to get started.",adviceP:"Advice: ",soil:"Soil Preparation",sow:"Sowing & Planting",irr:"Irrigation Management",nut:"Nutrient Management",pest:"Pest & Disease Control",harv:"Harvesting",cure:"How to Cure",prev:"Prevention Tips",fertTips:"Application Tips",langToast:"Language set to English",analyzing:"Analyzing plant health...",done:"Analysis complete!",needImg:"Please upload a JPG/PNG under 5MB.",needResult:"Please analyze a plant first.",reportOk:"Report downloaded!",cropLoad:"Loaded guide for",voiceListen:"Listen",voiceSpeaking:"Speaking...",voiceStop:"Stop"},
+hi:{brand:"प्लांटगार्ड AI",brandSub:"AI पौधा स्वास्थ्य डिटेक्टर और खेती सलाहकार",navHome:"होम",navDetect:"रोग पहचानें",navGuide:"खेती गाइड",navCrop:"फसल जानकारी",navHistory:"इतिहास",heroTitle:"AI-संचालित पौधा स्वास्थ्य पहचान और खेती सलाहकार",heroDesc:"अपने पौधे की पत्ती की फोटो अपलोड करें, रोग पहचानें और उपचार, उर्वरक तथा सही खेती पर विशेषज्ञ सलाह पाएं।",pill1:"सटीक पहचान",pill2:"उपचार सुझाव",pill3:"उर्वरक गाइड",pill4:"खेती सलाह",uploadText:"अपनी पौधे की छवि यहाँ खींचें और छोड़ें",uploadOr:"या",chooseImg:"छवि चुनें",uploadHint:"JPG, JPEG, PNG (अधिकतम 5MB)",changeImg:"छवि बदलें",analyzeBtn:"पौधा स्वास्थ्य विश्लेषण करें",noDetect:"अभी तक कोई पहचान नहीं",noDetectDesc:"AI रोग पहचान और खेती सलाह के लिए पत्ती की छवि अपलोड करें।",detectResult:"पहचान परिणाम",analysisDone:"विश्लेषण पूर्ण",confidence:"विश्वास स्कोर",cardTreat:"उपचार और देखभाल सुझाव",cardFert:"उर्वरक सिफारिश",cardFarm:"खेती गाइड",cardActions:"त्वरित कार्य",viewDetails:"विवरण देखें",viewGuide:"पूरी गाइड देखें",detectAnother:"दूसरा पौधा पहचानें",viewHistory:"इतिहास देखें",cropInfo:"फसल जानकारी",dlReport:"रिपोर्ट डाउनलोड",whyTitle:"प्लांटगार्ड AI क्यों चुनें?",why1t:"AI-संचालित सटीकता",why1d:"हजारों पौधे छवियों पर प्रशिक्षित उन्नत मॉडल।",why2t:"विशेषज्ञ सलाह",why2d:"कृषि विशेषज्ञ ज्ञान पर आधारित सिफारिशें।",why3t:"पूर्ण खेती समाधान",why3d:"रोग पहचान से खेती मार्गदर्शन – सब एक जगह।",why4t:"बहु-भाषा समर्थन",why4d:"अंग्रेजी, हिंदी और तेलुगु में उपलब्ध।",devWith:"किसानों के लिए ❤️ से विकसित",fullGuide:"पूर्ण खेती गाइड",backHome:"होम पर वापस",cropTitle:"फसल जानकारी",cropDesc:"विस्तृत उगाने की जानकारी देखने के लिए फसल चुनें।",histTitle:"पहचान इतिहास",histEmpty:"अभी तक कोई पहचान नहीं। पौधा छवि अपलोड करें।",adviceP:"सलाह: ",soil:"मिट्टी की तैयारी",sow:"बुवाई और रोपण",irr:"सिंचाई प्रबंधन",nut:"पोषक तत्व प्रबंधन",pest:"कीट और रोग नियंत्रण",harv:"कटाई",cure:"इलाज कैसे करें",prev:"रोकथाम सुझाव",fertTips:"प्रयोग सुझाव",langToast:"भाषा हिंदी में सेट",analyzing:"विश्लेषण हो रहा है...",done:"विश्लेषण पूर्ण!",needImg:"5MB से कम JPG/PNG अपलोड करें।",needResult:"पहले पौधे का विश्लेषण करें।",reportOk:"रिपोर्ट डाउनलोड हुई!",cropLoad:"गाइड लोड:",voiceListen:"सुनें",voiceSpeaking:"बोल रहा है...",voiceStop:"रोकें"},
+te:{brand:"ప్లాంట్‌గార్డ్ AI",brandSub:"AI మొక్క ఆరోగ్య గుర్తింపు & వ్యవసాయ సలహాదారు",navHome:"హోమ్",navDetect:"వ్యాధి గుర్తించు",navGuide:"వ్యవసాయ గైడ్",navCrop:"పంట సమాచారం",navHistory:"చరిత్ర",heroTitle:"AI-ఆధారిత మొక్క ఆరోగ్య గుర్తింపు & వ్యవసాయ సలహాదారు",heroDesc:"మీ మొక్క ఆకు ఫోటో అప్‌లోడ్ చేసి వ్యాధిని గుర్తించండి, చికిత్స, ఎరువులు మరియు సరైన వ్యవసాయ సలహా పొందండి.",pill1:"ఖచ్చితమైన గుర్తింపు",pill2:"చికిత్స చిట్కాలు",pill3:"ఎరువు గైడ్",pill4:"వ్యవసాయ సలహా",uploadText:"మీ మొక్క చిత్రాన్ని ఇక్కడ లాగి వదలండి",uploadOr:"లేదా",chooseImg:"చిత్రం ఎంచుకోండి",uploadHint:"JPG, JPEG, PNG (గరిష్టం 5MB)",changeImg:"చిత్రం మార్చండి",analyzeBtn:"మొక్క ఆరోగ్య విశ్లేషణ",noDetect:"ఇంకా గుర్తింపు లేదు",noDetectDesc:"AI వ్యాధి గుర్తింపు కోసం ఆకు చిత్రం అప్‌లోడ్ చేయండి.",detectResult:"గుర్తింపు ఫలితం",analysisDone:"విశ్లేషణ పూర్తి",confidence:"విశ్వాస స్కోర్",cardTreat:"చికిత్స & సంరక్షణ చిట్కాలు",cardFert:"ఎరువు సిఫార్సు",cardFarm:"వ్యవసాయ గైడ్",cardActions:"త్వరిత చర్యలు",viewDetails:"వివరాలు చూడండి",viewGuide:"పూర్తి గైడ్ చూడండి",detectAnother:"మరొక మొక్క గుర్తించు",viewHistory:"చరిత్ర చూడండి",cropInfo:"పంట సమాచారం",dlReport:"రిపోర్ట్ డౌన్‌లోడ్",whyTitle:"ప్లాంట్‌గార్డ్ AI ఎందుకు?",why1t:"AI-ఆధారిత ఖచ్చితత్వం",why1d:"వేలాది మొక్క చిత్రాలపై శిక్షణ పొందిన మోడల్స్.",why2t:"నిపుణుల సలహా",why2d:"వ్యవసాయ నిపుణుల జ్ఞానం ఆధారంగా సిఫార్సులు.",why3t:"పూర్తి వ్యవసాయ పరిష్కారం",why3d:"వ్యాధి గుర్తింపు నుండి వ్యవసాయ మార్గదర్శకం.",why4t:"బహుభాషా మద్దతు",why4d:"ఇంగ్లీష్, హిందీ, తెలుగులో అందుబాటు.",devWith:"రైతుల కోసం ❤️ తో అభివృద్ధి",fullGuide:"పూర్తి వ్యవసాయ గైడ్",backHome:"హోమ్‌కు తిరిగి",cropTitle:"పంట సమాచారం",cropDesc:"పెరుగుదల సమాచారం చూడటానికి పంటను ఎంచుకోండి.",histTitle:"గుర్తింపు చరిత్ర",histEmpty:"ఇంకా గుర్తింపులు లేవు. మొక్క చిత్రం అప్‌లోడ్ చేయండి.",adviceP:"సలహా: ",soil:"నేల సిద్ధం",sow:"విత్తనం & నాటడం",irr:"నీటిపారుదల నిర్వహణ",nut:"పోషక నిర్వహణ",pest:"కీటకాలు & వ్యాధి నియంత్రణ",harv:"కోత",cure:"ఎలా నయం చేయాలి",prev:"నివారణ చిట్కాలు",fertTips:"వాడకం చిట్కాలు",langToast:"భాష తెలుగుకు సెట్",analyzing:"విశ్లేషిస్తోంది...",done:"విశ్లేషణ పూర్తి!",needImg:"5MB కంటే తక్కువ JPG/PNG అప్‌లోడ్ చేయండి.",needResult:"ముందుగా మొక్కను విశ్లేషించండి.",reportOk:"రిపోర్ట్ డౌన్‌లోడ్ అయింది!",cropLoad:"గైడ్ లోడ్:",voiceListen:"వినండి",voiceSpeaking:"మాట్లాడుతోంది...",voiceStop:"ఆపండి"}
+};
+const DB=[
+{id:"teb",crop:"Tomato",cr:[88,96],tag:"fungal",
+en:{n:"Tomato – Early Blight",s:"Alternaria solani",t:"Fungal Disease",d:"Early blight starts as dark concentric rings (target spots) on older lower leaves. Spots enlarge, leaves yellow and drop. Can affect stems and fruits, severely reducing yield if uncontrolled.",a:"Detected early. Remove infected leaves and start fungicide sprays. Improve air flow; avoid overhead watering.",tr:["Remove & destroy infected lower leaves and debris.","Avoid overhead watering – use drip irrigation.","Ensure air circulation via spacing & pruning.","Spray Mancozeb 75% WP (2.5 g/L) or Chlorothalonil (2 g/L) every 7–10 days.","Apply copper oxychloride (3 g/L) as protective spray.","Monitor plants every 3–4 days."],cu:["Start fungicides at first symptom.","Alternate contact & systemic fungicides.","Remove severely infected plants.","Continue preventive sprays in humid weather."],pr:["Use certified disease-free seeds.","2–3 year crop rotation (avoid solanaceous).","Mulch to prevent spore splash.","Avoid excess nitrogen.","Keep field weed-free & well drained."],fe:[{n:"NPK 19:19:19",dt:"2.5 g/L water – Foliar every 10–12 days"},{n:"Potassium Nitrate (13:0:45)",dt:"1.5 g/L – Strengthens resistance"},{n:"Organic Compost / FYM",dt:"2–3 kg/plant – Soil application"},{n:"Calcium Nitrate",dt:"1 g/L – Improves cell walls"}],ft:"Spray foliar early morning/evening. Soil test yearly. Avoid excess N.",fm:{so:"Well-drained loamy soil, pH 6.0–6.8. Add 20–25 t FYM/ha.",sw:"Nursery 25–30 days. Transplant 45–60×30–45 cm. Best: Rabi (Oct–Nov), Kharif (Jun–Jul).",ir:"Irrigate after transplant. 60–70% field capacity. Prefer drip. No evening water.",nu:"NPK 100:50:50 kg/ha. Split N 3–4 times. Micronutrients (Zn,B,Fe) at flowering.",pe:"Watch early/late blight, leaf curl, fruit borer. Neem oil, copper, IPM.",ha:"Mature green/breaker for distant markets; pink–red local. Pick every 3–4 days."},no:"Thrives at 24–29°C humid. Dew & rain increase spread. Wear PPE; follow PHI."},
+hi:{n:"टमाटर – अगेती अंगमारी",s:"Alternaria solani",t:"कवक रोग",d:"अगेती अंगमारी निचली पत्तियों पर गहरे संकेन्द्रीय धब्बों से शुरू होती है। धब्बे बढ़ते हैं, पत्तियाँ पीली होकर झड़ जाती हैं। तने और फलों को प्रभावित कर पैदावार घटाती है।",a:"प्रारंभिक अवस्था में पहचाना। संक्रमित पत्तियाँ हटाएँ, फफूंदनाशक शुरू करें। हवा संचार बढ़ाएँ; ऊपर से पानी न दें।",tr:["संक्रमित निचली पत्तियाँ और अवशेष नष्ट करें।","ऊपर से पानी न दें – ड्रिप उपयोग करें।","दूरी और छंटाई से हवा संचार सुनिश्चित करें।","मैंकोजेब 75% WP (2.5 ग्रा/ली) या क्लोरोथैलोनिल (2 ग्रा/ली) हर 7–10 दिन।","कॉपर ऑक्सीक्लोराइड (3 ग्रा/ली) सुरक्षात्मक स्प्रे।","हर 3–4 दिन निगरानी करें।"],cu:["पहला लक्षण पर फफूंदनाशक शुरू करें।","संपर्क और प्रणालीगत बारी-बारी उपयोग करें।","गंभीर संक्रमित पौधे हटाएँ।","आर्द्र मौसम में निवारक स्प्रे जारी रखें।"],pr:["प्रमाणित रोग-मुक्त बीज उपयोग करें।","2–3 वर्ष फसल चक्र।","मल्चिंग करें।","अधिक नाइट्रोजन से बचें।","खरपतवार-मुक्त और अच्छी जल निकासी।"],fe:[{n:"NPK 19:19:19",dt:"2.5 ग्रा/ली – पर्णीय हर 10–12 दिन"},{n:"पोटेशियम नाइट्रेट (13:0:45)",dt:"1.5 ग्रा/ली – प्रतिरोध बढ़ाता है"},{n:"जैविक कंपोस्ट / गोबर खाद",dt:"2–3 किग्रा/पौधा – मिट्टी में"},{n:"कैल्शियम नाइट्रेट",dt:"1 ग्रा/ली – कोशिका भित्ति मजबूत"}],ft:"सुबह/शाम स्प्रे करें। वर्ष में मिट्टी परीक्षण। अधिक N से बचें।",fm:{so:"दोमट मिट्टी, pH 6.0–6.8। 20–25 टन गोबर खाद/हेक्टेयर।",sw:"नर्सरी 25–30 दिन। 45–60×30–45 सेमी रोपाई। रबी/खरीफ।",ir:"रोपाई बाद सिंचाई। 60–70% क्षमता। ड्रिप बेहतर। शाम को न दें।",nu:"NPK 100:50:50 किग्रा/हेक्टेयर। N 3–4 भाग। सूक्ष्म तत्व फूल/फल पर।",pe:"अगेती/पछेती अंगमारी, पत्ती मोड़क, फल बेधक देखें।",ha:"दूर बाजार के लिए हरा/ब्रेकर; स्थानीय के लिए गुलाबी-लाल। हर 3–4 दिन।"},no:"24–29°C आर्द्र में फैलती है। सुरक्षा उपकरण पहनें।"},
+te:{n:"టమోటా – ఎర్లీ బ్లైట్",s:"Alternaria solani",t:"శిలీంధ్ర వ్యాధి",d:"ఎర్లీ బ్లైట్ దిగువ ఆకులపై నల్లని వృత్తాకార మచ్చలతో మొదలవుతుంది. మచ్చలు పెరిగి ఆకులు పసుపు అయి రాలిపోతాయి. కాండాలు, పండ్లను ప్రభావితం చేసి దిగుబడి తగ్గిస్తుంది.",a:"ప్రారంభ దశలో గుర్తించబడింది. సోకిన ఆకులు తొలగించి శిలీంధ్రనాశిని స్ప్రేలు ప్రారంభించండి. గాలి ప్రసరణ పెంచి పైనుండి నీరు నివారించండి.",tr:["సోకిన దిగువ ఆకులు, అవశేషాలు నాశనం చేయండి.","పైనుండి నీరు పోయకుండా డ్రిప్ వాడండి.","అంతరం & కత్తిరింపుతో గాలి ప్రసరణ.","మాంకోజెబ్ 75% WP (2.5 గ్రా/లీ) లేదా క్లోరోథాలోనిల్ (2 గ్రా/లీ) ప్రతి 7–10 రోజులకు.","కాపర్ ఆక్సిక్లోరైడ్ (3 గ్రా/లీ) రక్షణ స్ప్రే.","ప్రతి 3–4 రోజులకు పరిశీలించండి."],cu:["మొదటి లక్షణం వద్ద శిలీంధ్రనాశిని ప్రారంభించండి.","కాంటాక్ట్ & సిస్టమిక్ మార్చి వాడండి.","తీవ్రంగా సోకిన మొక్కలు తొలగించండి.","తేమ వాతావరణంలో నివారణ స్ప్రేలు కొనసాగించండి."],pr:["ధృవీకృత వ్యాధి-రహిత విత్తనాలు.","2–3 సంవత్సరాల పంట మార్పిడి.","మల్చింగ్ చేయండి.","అధిక నత్రజని నివారించండి.","కలుపు-రహిత & మంచి నీటి నిష్కాసన."],fe:[{n:"NPK 19:19:19",dt:"2.5 గ్రా/లీ – ఆకు స్ప్రే ప్రతి 10–12 రోజులకు"},{n:"పొటాషియం నైట్రేట్ (13:0:45)",dt:"1.5 గ్రా/లీ – నిరోధక శక్తి"},{n:"సేంద్రియ కంపోస్ట్ / FYM",dt:"2–3 కిలో/మొక్క – నేలలో"},{n:"కాల్షియం నైట్రేట్",dt:"1 గ్రా/లీ – కణ గోడలు బలం"}],ft:"ఉదయం/సాయంత్రం స్ప్రే. సంవత్సరానికి నేల పరీక్ష. అధిక N నివారించండి.",fm:{so:"లోమీ నేల, pH 6.0–6.8. 20–25 టన్నుల FYM/హెక్టార్.",sw:"నర్సరీ 25–30 రోజులు. 45–60×30–45 సెం.మీ నాటండి. రబీ/ఖరీఫ్.",ir:"నాటిన తర్వాత నీరు. 60–70% కెపాసిటీ. డ్రిప్ ఉత్తమం.",nu:"NPK 100:50:50 కిలో/హెక్టార్. N 3–4 భాగాలు. సూక్ష్మపోషకాలు.",pe:"ఎర్లీ/లేట్ బ్లైట్, ఆకు ముడత, కాయ తొలుచు పురుగు.",ha:"దూర మార్కెట్‌కు ఆకుపచ్చ/బ్రేకర్; స్థానికానికి గులాబీ-ఎరుపు."},no:"24–29°C తేమలో వ్యాపిస్తుంది. రక్షణ పరికరాలు ధరించండి."}},
+{id:"tlb",crop:"Tomato",cr:[85,94],tag:"fungal",
+en:{n:"Tomato – Late Blight",s:"Phytophthora infestans",t:"Fungal Disease",d:"Highly destructive. Water-soaked grey-green lesions turn brown/black quickly. White fungal growth on undersides in humidity. Stems and fruits infected; rapid plant death possible.",a:"Act immediately. Remove infected parts, apply systemic/copper fungicides, improve air flow, stop evening irrigation.",tr:["Remove & burn infected leaves, stems, debris.","Apply Metalaxyl+Mancozeb (2.5 g/L) or Cymoxanil+Mancozeb immediately.","Follow with copper hydroxide (2 g/L) protective sprays.","Increase spacing; prune for air flow.","Never water in evening; keep foliage dry.","Destroy volunteer tomato/potato nearby."],cu:["Systemic fungicides within 24 hours of first symptom.","Alternate chemistry groups each spray.","Uproot heavily infected plants.","Continue protective sprays until dry warm weather."],pr:["Plant resistant varieties.","Avoid planting near potato fields.","Raised beds & good drainage.","Preventive copper before monsoon.","Strict sanitation & rotation."],fe:[{n:"NPK 20:20:20",dt:"2 g/L – Foliar for recovery"},{n:"Calcium Nitrate",dt:"1–1.5 g/L – Strengthens tissues"},{n:"Potassium Sulphate",dt:"1.5 g/L – Disease resistance"},{n:"Vermicompost",dt:"2 kg/plant – Soil"}],ft:"Focus on K and Ca. Avoid heavy N (soft tissues).",fm:{so:"Well-drained essential. Avoid waterlogged areas. pH 6.0–6.8.",sw:"Well-ventilated sites. Avoid dense planting.",ir:"Drip only. No overhead or evening irrigation.",nu:"Balanced NPK; emphasize K and Ca.",pe:"Late blight priority. Watch fruit rot, bacterial spot.",ha:"Harvest early if disease near maturity. Don't store infected fruit."},no:"Spreads extremely fast in cool (10–20°C) wet weather. Act within hours."},
+hi:{n:"टमाटर – पछेती अंगमारी",s:"Phytophthora infestans",t:"कवक रोग",d:"बहुत विनाशकारी। पानी से भीगे भूरे-हरे धब्बे जल्दी काले पड़ जाते हैं। आर्द्र में नीचे सफेद कवक। तने/फल संक्रमित; पौधा जल्दी मर सकता है।",a:"तुरंत कार्रवाई। संक्रमित भाग हटाएँ, प्रणालीगत/कॉपर फफूंदनाशक, हवा प्रवाह, शाम सिंचाई बंद।",tr:["संक्रमित पत्तियाँ, तने, अवशेष जलाएँ।","मेटालेक्सिल+मैंकोजेब (2.5 ग्रा/ली) तुरंत।","कॉपर हाइड्रॉक्साइड (2 ग्रा/ली) सुरक्षात्मक।","दूरी बढ़ाएँ; छंटाई।","शाम को पानी न दें।","आसपास स्वयंसेवी टमाटर/आलू नष्ट करें।"],cu:["24 घंटे में प्रणालीगत फफूंदनाशक।","हर स्प्रे रसायन समूह बदलें।","भारी संक्रमित उखाड़ें।","सूखा गर्म मौसम तक स्प्रे।"],pr:["प्रतिरोधी किस्में।","आलू खेतों के पास न लगाएँ।","उठी क्यारियाँ।","मानसून से पहले कॉपर।","स्वच्छता और चक्र।"],fe:[{n:"NPK 20:20:20",dt:"2 ग्रा/ली – रिकवरी"},{n:"कैल्शियम नाइट्रेट",dt:"1–1.5 ग्रा/ली"},{n:"पोटेशियम सल्फेट",dt:"1.5 ग्रा/ली"},{n:"वर्मीकंपोस्ट",dt:"2 किग्रा/पौधा"}],ft:"K और Ca पर ध्यान। भारी N से बचें।",fm:{so:"अच्छी जल निकासी। जलभराव से बचें।",sw:"अच्छी हवा वाले स्थान। घनी रोपाई से बचें।",ir:"केवल ड्रिप। शाम सिंचाई न करें।",nu:"संतुलित NPK; K और Ca।",pe:"लेट ब्लाइट प्राथमिकता।",ha:"परिपक्वता पास रोग हो तो जल्दी तोड़ें।"},no:"ठंडे गीले मौसम में बेहद तेज फैलाव। घंटों में कार्रवाई।"},
+te:{n:"టమోటా – లేట్ బ్లైట్",s:"Phytophthora infestans",t:"శిలీంధ్ర వ్యాధి",d:"చాలా విధ్వంసకరం. నీటి తడి బూడిద-ఆకుపచ్చ మచ్చలు త్వరగా నలుపు అవుతాయి. తేమలో అడుగున తెల్ల శిలీంధ్రం. కాండాలు/పండ్లు సోకి మొక్క చనిపోవచ్చు.",a:"వెంటనే చర్య. సోకిన భాగాలు తొలగించి, సిస్టమిక్/కాపర్ శిలీంధ్రనాశినులు, గాలి ప్రసరణ, సాయంత్రం నీరు ఆపండి.",tr:["సోకిన ఆకులు, కాండాలు కాల్చండి.","మెటలాక్సిల్+మాంకోజెబ్ (2.5 గ్రా/లీ) వెంటనే.","కాపర్ హైడ్రాక్సైడ్ (2 గ్రా/లీ) రక్షణ.","అంతరం పెంచి కత్తిరించండి.","సాయంత్రం నీరు పెట్టకండి.","సమీప స్వచ్ఛంద టమోటా/బంగాళదుంప నాశనం."],cu:["24 గంటలలో సిస్టమిక్.","ప్రతి స్ప్రేలో రసాయన సమూహం మార్చండి.","భారీగా సోకినవి పీకండి.","పొడి వెచ్చ వాతావరణం వరకు స్ప్రే."],pr:["నిరోధక రకాలు.","బంగాళదుంప దగ్గర నాటకండి.","ఎత్తైన పాదులు.","వర్షాకాలం ముందు కాపర్.","శుభ్రత & మార్పిడి."],fe:[{n:"NPK 20:20:20",dt:"2 గ్రా/లీ – కోలుకోవడం"},{n:"కాల్షియం నైట్రేట్",dt:"1–1.5 గ్రా/లీ"},{n:"పొటాషియం సల్ఫేట్",dt:"1.5 గ్రా/లీ"},{n:"వర్మికంపోస్ట్",dt:"2 కిలో/మొక్క"}],ft:"K మరియు Caపై దృష్టి. భారీ N నివారించండి.",fm:{so:"మంచి నీటి నిష్కాసన. నీరు నిలిచే ప్రాంతాలు నివారించండి.",sw:"మంచి గాలి స్థలాలు. దట్టంగా నాటకండి.",ir:"డ్రిప్ మాత్రమే. సాయంత్రం నీరు వద్దు.",nu:"సమతుల్య NPK; K మరియు Ca.",pe:"లేట్ బ్లైట్ ప్రాధాన్యత.",ha:"పరిపక్వత దగ్గర వ్యాధి ఉంటే త్వరగా కోయండి."},no:"చల్లని తడి వాతావరణంలో చాలా వేగంగా వ్యాపిస్తుంది."}},
+{id:"tlc",crop:"Tomato",cr:[82,92],tag:"viral",
+en:{n:"Tomato – Leaf Curl Virus",s:"Tomato leaf curl virus (ToLCV)",t:"Viral Disease",d:"Transmitted by whiteflies. Leaves curl upward, margins yellow, plants stunted, fruit set drastically reduced. No chemical cure once infected.",a:"Control whiteflies immediately. Remove severely infected plants. Use reflective mulch and resistant varieties next season.",tr:["Uproot & destroy severely infected plants (don't compost).","Neem oil 5 ml/L or Imidacloprid 0.3 ml/L for whitefly.","Yellow sticky traps (8–10/acre).","Beauveria or biopesticides for whitefly.","Silver reflective mulch.","Avoid new tomato near infected fields."],cu:["No cure for the virus.","Focus on whitefly control & removing sources.","Protect new plantings with nets from day one."],pr:["Resistant/tolerant hybrids.","Insect-proof nursery nets.","Remove weed hosts.","Avoid continuous tomato.","Avoid peak whitefly periods."],fe:[{n:"NPK 19:19:19",dt:"2 g/L foliar every 12–15 days"},{n:"Micronutrient Mix (Zn,B,Fe,Mn)",dt:"1–2 g/L"},{n:"Farmyard Manure",dt:"3–4 kg/plant"},{n:"Seaweed Extract",dt:"2–3 ml/L – Stress tolerance"}],ft:"Keep plants vigorous. Avoid excess N.",fm:{so:"Good drainage reduces stress.",sw:"Raise under insect-proof nets. Healthy virus-free seedlings only.",ir:"Regular moisture; avoid water stress.",nu:"Balanced + micronutrients. Avoid excess N.",pe:"Whitefly is key vector. Manage thrips, aphids.",ha:"Infected plants give low yield; focus healthy blocks."},no:"One of the most economically important tomato diseases in India."},
+hi:{n:"टमाटर – पत्ती मोड़क विषाणु",s:"Tomato leaf curl virus (ToLCV)",t:"विषाणु रोग",d:"सफेद मक्खी से फैलता है। पत्तियाँ ऊपर मुड़ती हैं, किनारे पीले, पौधा बौना, फल बहुत कम। संक्रमित होने पर इलाज नहीं।",a:"सफेद मक्खी तुरंत नियंत्रित करें। गंभीर संक्रमित हटाएँ। परावर्तक मल्च और प्रतिरोधी किस्में।",tr:["गंभीर संक्रमित उखाड़ नष्ट करें।","नीम तेल 5 मिली/ली या इमिडाक्लोप्रिड 0.3 मिली/ली।","पीले चिपचिपे जाल।","जैव कीटनाशक।","सिल्वर मल्च।","संक्रमित खेतों पास न लगाएँ।"],cu:["विषाणु का इलाज नहीं।","सफेद मक्खी नियंत्रण और स्रोत हटाना।","नई रोपाई जाल से सुरक्षित।"],pr:["प्रतिरोधी संकर।","कीट-रोधी नर्सरी जाल।","खरपतवार मेजबान हटाएँ।","लगातार टमाटर से बचें।"],fe:[{n:"NPK 19:19:19",dt:"2 ग्रा/ली हर 12–15 दिन"},{n:"सूक्ष्म पोषक मिश्रण",dt:"1–2 ग्रा/ली"},{n:"गोबर खाद",dt:"3–4 किग्रा/पौधा"},{n:"समुद्री शैवाल अर्क",dt:"2–3 मिली/ली"}],ft:"पौधे स्वस्थ रखें। अधिक N से बचें।",fm:{so:"अच्छी जल निकासी।",sw:"कीट-रोधी जाल के नीचे पौध।",ir:"नियमित नमी।",nu:"संतुलित + सूक्ष्म तत्व।",pe:"सफेद मक्खी मुख्य वाहक।",ha:"संक्रमित से कम पैदावार।"},no:"भारत में टमाटर का महत्वपूर्ण रोग।"},
+te:{n:"టమోటా – ఆకు ముడత వైరస్",s:"Tomato leaf curl virus (ToLCV)",t:"వైరల్ వ్యాధి",d:"తెల్లదోమల ద్వారా వ్యాపిస్తుంది. ఆకులు పైకి ముడుస్తాయి, అంచులు పసుపు, మొక్క మరగుజ్జు, కాయలు తగ్గుతాయి. సోకితే చికిత్స లేదు.",a:"తెల్లదోమలను వెంటనే నియంత్రించండి. తీవ్రంగా సోకినవి తొలగించండి. ప్రతిబింబ మల్చ్ & నిరోధక రకాలు.",tr:["తీవ్రంగా సోకినవి పీకి నాశనం.","వేప నూనె 5 మి.లీ/లీ లేదా ఇమిడాక్లోప్రిడ్ 0.3 మి.లీ/లీ.","పసుపు అంటుకునే ఉచ్చులు.","జీవ క్రిమిసంహారకాలు.","సిల్వర్ మల్చ్.","సోకిన పొలాల దగ్గర నాటకండి."],cu:["వైరస్‌కు చికిత్స లేదు.","తెల్లదోమ నియంత్రణ & మూలాల తొలగింపు.","కొత్త నాట్లను నెట్లతో రక్షించండి."],pr:["నిరోధక హైబ్రిడ్‌లు.","కీటక-నిరోధక నర్సరీ నెట్లు.","కలుపు ఆతిథ్య మొక్కలు తొలగించండి."],fe:[{n:"NPK 19:19:19",dt:"2 గ్రా/లీ ప్రతి 12–15 రోజులకు"},{n:"సూక్ష్మపోషక మిశ్రమం",dt:"1–2 గ్రా/లీ"},{n:"పశువుల ఎరువు",dt:"3–4 కిలో/మొక్క"},{n:"సముద్రపు పాచి సారం",dt:"2–3 మి.లీ/లీ"}],ft:"మొక్కలను బలంగా ఉంచండి. అధిక N నివారించండి.",fm:{so:"మంచి నీటి నిష్కాసన.",sw:"కీటక-నిరోధక నెట్ల కింద నాట్లు.",ir:"నియమిత తేమ.",nu:"సమతుల్య + సూక్ష్మపోషకాలు.",pe:"తెల్లదోమ ప్రధాన వాహకం.",ha:"సోకిన మొక్కల నుండి తక్కువ దిగుబడి."},no:"భారతదేశంలో టమోటా ముఖ్యమైన వ్యాధి."}},
+{id:"peb",crop:"Potato",cr:[86,94],tag:"fungal",
+en:{n:"Potato – Early Blight",s:"Alternaria solani",t:"Fungal Disease",d:"Dark brown to black lesions with concentric rings on leaves. Reduces photosynthesis, causes defoliation, smaller tubers and yield loss.",a:"Begin fungicide sprays at first symptom. Improve sanitation and follow crop rotation.",tr:["Mancozeb 75% WP (2–2.5 g/L) or Chlorothalonil every 7–10 days.","Remove lower infected leaves if practical.","Avoid excess nitrogen.","Good drainage; water early in day.","Destroy crop residue after harvest.","2–3 year rotation with non-hosts."],cu:["Start sprays at first lesions or favourable weather.","Rotate protectant with systemic fungicides.","Maintain vigour with balanced nutrition."],pr:["Certified seed tubers.","Avoid consecutive potato/tomato.","Balanced fertilizer; don't over-apply N.","Hill up properly.","Harvest in dry weather."],fe:[{n:"NPK 12:32:16",dt:"Basal as per soil test"},{n:"Muriate of Potash",dt:"50 kg/ha at tuber initiation"},{n:"Compost / FYM",dt:"15–20 t/ha"},{n:"Zinc Sulphate",dt:"25 kg/ha if deficient"}],ft:"K critical for tuber quality & resistance. Split N.",fm:{so:"Sandy loam to loam, well drained, pH 5.5–6.5.",sw:"Sprouted tubers 15–20 cm deep, 20–25 cm apart in ridges.",ir:"Critical at tuber initiation & bulking.",nu:"Balanced NPK; emphasize K.",pe:"Early/late blight, black scurf, aphids, cutworms.",ha:"Harvest when vines mature. Cure before storage."},no:"Favoured by warm temps and alternating wet/dry."},
+hi:{n:"आलू – अगेती अंगमारी",s:"Alternaria solani",t:"कवक रोग",d:"पत्तियों पर गहरे भूरे-काले संकेन्द्रीय धब्बे। प्रकाश संश्लेषण घटाती है, पत्तियाँ झड़ती हैं, छोटे कंद और पैदावार हानि।",a:"पहला लक्षण पर फफूंदनाशक शुरू करें। स्वच्छता और फसल चक्र।",tr:["मैंकोजेब 75% WP (2–2.5 ग्रा/ली) हर 7–10 दिन।","निचली संक्रमित पत्तियाँ हटाएँ।","अधिक नाइट्रोजन से बचें।","अच्छी जल निकासी।","कटाई बाद अवशेष नष्ट करें।","2–3 वर्ष चक्र।"],cu:["पहला धब्बा पर स्प्रे।","सुरक्षात्मक और प्रणालीगत बारी-बारी।","संतुलित पोषण।"],pr:["प्रमाणित बीज कंद।","लगातार आलू/टमाटर से बचें।","संतुलित उर्वरक।"],fe:[{n:"NPK 12:32:16",dt:"मिट्टी परीक्षण अनुसार"},{n:"म्यूरेट ऑफ पोटाश",dt:"कंद आरंभ पर 50 किग्रा/हेक्टेयर"},{n:"कंपोस्ट / गोबर खाद",dt:"15–20 टन/हेक्टेयर"},{n:"जिंक सल्फेट",dt:"कमी पर 25 किग्रा/हेक्टेयर"}],ft:"कंद गुणवत्ता के लिए K महत्वपूर्ण।",fm:{so:"बलुई दोमट, अच्छी निकासी, pH 5.5–6.5।",sw:"अंकुरित कंद 15–20 सेमी गहराई।",ir:"कंद आरंभ और बढ़ोतरी पर महत्वपूर्ण।",nu:"संतुलित NPK; K पर जोर।",pe:"अगेती/पछेती अंगमारी।",ha:"बेल परिपक्व पर कटाई।"},no:"गर्म तापमान और गीले/सूखे बदलाव से फैलती है।"},
+te:{n:"బంగాళదుంప – ఎర్లీ బ్లైట్",s:"Alternaria solani",t:"శిలీంధ్ర వ్యాధి",d:"ఆకులపై ముదురు గోధుమ-నల్ల మచ్చలు వృత్తాకారంతో. కాంతిసంశ్లేషణ తగ్గి, ఆకులు రాలి, చిన్న దుంపలు & దిగుబడి నష్టం.",a:"మొదటి లక్షణం వద్ద శిలీంధ్రనాశిని ప్రారంభించండి. శుభ్రత & పంట మార్పిడి.",tr:["మాంకోజెబ్ 75% WP (2–2.5 గ్రా/లీ) ప్రతి 7–10 రోజులకు.","దిగువ సోకిన ఆకులు తొలగించండి.","అధిక నత్రజని నివారించండి.","మంచి నీటి నిష్కాసన.","కోత తర్వాత అవశేషాలు నాశనం.","2–3 సంవత్సరాల మార్పిడి."],cu:["మొదటి మచ్చల వద్ద స్ప్రే.","రక్షణ & సిస్టమిక్ మార్చి వాడండి.","సమతుల్య పోషణ."],pr:["ధృవీకృత విత్తన దుంపలు.","వరుసగా బంగాళదుంప/టమోటా నివారించండి."],fe:[{n:"NPK 12:32:16",dt:"నేల పరీక్ష ప్రకారం"},{n:"మ్యూరేట్ ఆఫ్ పొటాష్",dt:"దుంప ప్రారంభంలో 50 కిలో/హెక్టార్"},{n:"కంపోస్ట్ / FYM",dt:"15–20 టన్నులు/హెక్టార్"},{n:"జింక్ సల్ఫేట్",dt:"లోపం ఉంటే 25 కిలో/హెక్టార్"}],ft:"దుంప నాణ్యతకు K కీలకం.",fm:{so:"ఇసుక లోమ్, మంచి నిష్కాసన, pH 5.5–6.5.",sw:"మొలకెత్తిన దుంపలు 15–20 సెం.మీ లోతు.",ir:"దుంప ప్రారంభం & పెరుగుదల వద్ద ముఖ్యం.",nu:"సమతుల్య NPK; Kపై దృష్టి.",pe:"ఎర్లీ/లేట్ బ్లైట్.",ha:"తీగలు పరిపక్వమైనప్పుడు కోయండి."},no:"వెచ్చని ఉష్ణోగ్రతలు & తడి/పొడి మార్పులతో వ్యాపిస్తుంది."}},
+{id:"healthy",crop:"General",cr:[92,98],tag:"healthy",
+en:{n:"Healthy Plant",s:"No pathogen detected",t:"Healthy",d:"Your plant appears healthy! No visible disease signs detected. Continue good cultural practices to maintain health.",a:"Keep monitoring regularly. Maintain balanced nutrition, proper irrigation and sanitation.",tr:["Regular visual monitoring every 3–4 days.","Proper watering – avoid stress and waterlogging.","Adequate balanced nutrition.","Preventive fungicide sprays in humid weather if needed.","Keep area weed-free and ventilated.","Remove dead/damaged leaves promptly."],cu:["No treatment needed – plant is healthy.","Focus on prevention and vigour."],pr:["Healthy planting material.","Recommended spacing & pruning.","Rotate crops where applicable.","Soil-test based fertilizers.","Monitor disease-vectoring pests."],fe:[{n:"NPK 19:19:19",dt:"2 g/L every 15 days maintenance foliar"},{n:"Potassium Sulphate",dt:"1 g/L at flowering/fruiting"},{n:"Organic Compost",dt:"2 kg/plant monthly"},{n:"Micronutrient mix",dt:"1 g/L once a month"}],ft:"Healthy plants respond well to balanced nutrition. Avoid excess N.",fm:{so:"Maintain good soil structure and organic matter.",sw:"Follow crop-specific spacing and timing.",ir:"Optimal soil moisture for the crop.",nu:"Soil-test based fertilization is best.",pe:"Regular monitoring is the best defence.",ha:"Harvest at right stage for quality."},no:"Early detection of future symptoms is key."},
+hi:{n:"स्वस्थ पौधा",s:"कोई रोगजनक नहीं मिला",t:"स्वस्थ",d:"आपका पौधा स्वस्थ दिखता है! रोग के कोई दृश्य संकेत नहीं। स्वास्थ्य बनाए रखने के लिए अच्छी प्रथाएँ जारी रखें।",a:"नियमित निगरानी। संतुलित पोषण, सही सिंचाई और स्वच्छता।",tr:["हर 3–4 दिन निगरानी।","सही पानी – तनाव और जलभराव से बचें।","संतुलित पोषण।","आर्द्र में निवारक स्प्रे।","खरपतवार-मुक्त।","मरी पत्तियाँ हटाएँ।"],cu:["उपचार आवश्यक नहीं।","रोकथाम पर ध्यान।"],pr:["स्वस्थ रोपण सामग्री।","अनुशंसित दूरी।","फसल चक्र।","मिट्टी परीक्षण उर्वरक।"],fe:[{n:"NPK 19:19:19",dt:"हर 15 दिन 2 ग्रा/ली"},{n:"पोटेशियम सल्फेट",dt:"फूल/फल पर 1 ग्रा/ली"},{n:"जैविक कंपोस्ट",dt:"महीने 2 किग्रा/पौधा"},{n:"सूक्ष्म पोषक मिश्रण",dt:"महीने 1 ग्रा/ली"}],ft:"स्वस्थ पौधा संतुलित पोषण पर अच्छी प्रतिक्रिया देता है।",fm:{so:"अच्छी मिट्टी संरचना।",sw:"फसल-विशिष्ट दूरी।",ir:"इष्टतम नमी।",nu:"मिट्टी परीक्षण आधारित।",pe:"नियमित निगरानी।",ha:"सही अवस्था में कटाई।"},no:"भविष्य के लक्षणों की प्रारंभिक पहचान महत्वपूर्ण।"},
+te:{n:"ఆరోగ్యవంతమైన మొక్క",s:"ఏ పాథోజెన్ లేదు",t:"ఆరోగ్యవంతం",d:"మీ మొక్క ఆరోగ్యంగా కనిపిస్తోంది! వ్యాధి సంకేతాలు లేవు. ఆరోగ్యం కాపాడుకోవడానికి మంచి పద్ధతులు కొనసాగించండి.",a:"నియమిత పరిశీలన. సమతుల్య పోషణ, సరైన నీరు & శుభ్రత.",tr:["ప్రతి 3–4 రోజులకు పరిశీలన.","సరైన నీరు – ఒత్తిడి & నీరు నిలువ నివారించండి.","సమతుల్య పోషణ.","తేమలో నివారణ స్ప్రేలు.","కలుపు-రహితం.","చనిపోయిన ఆకులు తొలగించండి."],cu:["చికిత్స అవసరం లేదు.","నివారణపై దృష్టి."],pr:["ఆరోగ్యవంతమైన నాటు పదార్థం.","సిఫార్సు అంతరం.","పంట మార్పిడి.","నేల పరీక్ష ఎరువులు."],fe:[{n:"NPK 19:19:19",dt:"ప్రతి 15 రోజులకు 2 గ్రా/లీ"},{n:"పొటాషియం సల్ఫేట్",dt:"పూత/కాయ వద్ద 1 గ్రా/లీ"},{n:"సేంద్రియ కంపోస్ట్",dt:"నెలకు 2 కిలో/మొక్క"},{n:"సూక్ష్మపోషక మిశ్రమం",dt:"నెలకు 1 గ్రా/లీ"}],ft:"ఆరోగ్యవంతమైన మొక్క సమతుల్య పోషణకు బాగా స్పందిస్తుంది.",fm:{so:"మంచి నేల నిర్మాణం.",sw:"పంట-నిర్దిష్ట అంతరం.",ir:"సరైన నేల తేమ.",nu:"నేల పరీక్ష ఆధారితం.",pe:"నియమిత పరిశీలన.",ha:"సరైన దశలో కోయండి."},no:"భవిష్యత్ లక్షణాల ప్రారంభ గుర్తింపు కీలకం."}}
+];
+const CROPS=[{n:"Tomato",e:"🍅",s:"Solanum lycopersicum"},{n:"Potato",e:"🥔",s:"Solanum tuberosum"},{n:"Chili",e:"🌶️",s:"Capsicum annuum"},{n:"Rice",e:"🌾",s:"Oryza sativa"},{n:"Wheat",e:"🌿",s:"Triticum aestivum"},{n:"Cotton",e:"☁️",s:"Gossypium hirsutum"},{n:"Maize",e:"🌽",s:"Zea mays"},{n:"Onion",e:"🧅",s:"Allium cepa"}];
+let lang=localStorage.getItem('pg_lang')||'en',file=null,result=null,hist=JSON.parse(localStorage.getItem('pg_hist')||'[]');
+function t(k){return(I18N[lang]&&I18N[lang][k])||I18N.en[k]||k}
+function applyI18n(){document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.getAttribute('data-i18n')));document.getElementById('langSelect').value=lang;if(result)renderResult(result);renderCrops();if(typeof isSpeaking!=='undefined'&&!isSpeaking){const btn=document.getElementById('voiceBtn');if(btn)btn.innerHTML='<span class="voice-icon">🔊</span> <span data-i18n="voiceListen">'+t('voiceListen')+'</span>';}}
+function setLang(l){lang=l;localStorage.setItem('pg_lang',l);if(typeof stopSpeaking==='function')stopSpeaking();applyI18n();toast(t('langToast'))}
+function procFile(f){if(!f.type.match(/image\/(jpeg|jpg|png)/i)||f.size>5*1024*1024){toast(t('needImg'));return}file=f;const r=new FileReader();r.onload=e=>{document.getElementById('previewImg').src=e.target.result;document.getElementById('fileName').textContent=f.name;document.getElementById('upPlaceholder').style.display='none';document.getElementById('upPreview').style.display='block';document.getElementById('uploadZone').classList.add('has-image');document.getElementById('analyzeWrap').classList.add('show')};r.readAsDataURL(f)}
+function resetUp(){file=null;document.getElementById('fileInput').value='';document.getElementById('upPlaceholder').style.display='block';document.getElementById('upPreview').style.display='none';document.getElementById('uploadZone').classList.remove('has-image');document.getElementById('analyzeWrap').classList.remove('show')}
+function analyze(){if(!file)return;const btn=document.getElementById('analyzeBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> '+t('analyzing');setTimeout(()=>{const w=[25,18,15,12,30];let r=Math.random()*100,idx=0,c=0;for(let i=0;i<w.length;i++){c+=w[i];if(r<c){idx=i;break}}if(idx>=DB.length)idx=DB.length-1;const e=DB[idx];const conf=e.cr[0]+Math.floor(Math.random()*(e.cr[1]-e.cr[0]+1));result={...e,conf};renderResult(result);const d=e[lang]||e.en;hist.unshift({id:Date.now(),name:d.n,sci:d.s,conf,tag:d.t,date:new Date().toLocaleString(),img:document.getElementById('previewImg').src});if(hist.length>20)hist.pop();localStorage.setItem('pg_hist',JSON.stringify(hist));btn.disabled=false;btn.innerHTML='🔍 '+t('analyzeBtn');toast(t('done')+' '+d.n)},1500)}
+function renderResult(e){const d=e[lang]||e.en;document.getElementById('resultEmpty').style.display='none';document.getElementById('resultCard').classList.add('show');document.getElementById('resultImg').src=document.getElementById('previewImg').src;document.getElementById('dName').textContent=d.n;document.getElementById('dSci').textContent=d.s;document.getElementById('dTag').textContent=d.t;const h=e.tag==='healthy';document.getElementById('dTag').style.background=h?'#e6f7ef':'#fde8e8';document.getElementById('dTag').style.color=h?'#1a6b4f':'#d64545';document.getElementById('dDesc').textContent=d.d;document.getElementById('dAdvice').textContent=t('adviceP')+d.a;const fill=document.getElementById('cFill'),pct=document.getElementById('cPct');fill.style.width='0%';pct.textContent='0%';setTimeout(()=>{fill.style.width=e.conf+'%';let n=0;const iv=setInterval(()=>{n+=2;if(n>=e.conf){n=e.conf;clearInterval(iv)}pct.textContent=n+'%'},18)},80);document.getElementById('treatList').innerHTML=d.tr.slice(0,5).map(x=>`<li><span class="check">✓</span> ${x}</li>`).join('');document.getElementById('fertList').innerHTML=d.fe.slice(0,3).map((f,i)=>`<div class="fert-item"><span class="dot ${['blue','orange','green'][i]}"></span><div><strong>${f.n}</strong><span>${f.dt}</span></div></div>`).join('');document.getElementById('farmList').innerHTML=[t('soil'),t('sow'),t('irr'),t('nut'),t('pest'),t('harv')].map(x=>`<li><span class="check">✓</span> ${x}</li>`).join('');document.getElementById('bottomCards').style.opacity='1';document.getElementById('bottomCards').style.pointerEvents='auto'}
+function openModal(type){if(!result&&type!=='farm'){toast(t('needResult'));return}const body=document.getElementById('modalBody');const d=result?(result[lang]||result.en):null;if(type==='treat'&&d){body.innerHTML=`<h2>🛡️ ${t('cardTreat')}</h2><div class="modal-section"><strong>${t('cure')}</strong><ul>${d.cu.map(x=>`<li>${x}</li>`).join('')}</ul></div><div class="modal-section"><strong>${t('cardTreat')}</strong><ul>${d.tr.map(x=>`<li>${x}</li>`).join('')}</ul></div><div class="modal-section"><strong>${t('prev')}</strong><ul>${d.pr.map(x=>`<li>${x}</li>`).join('')}</ul></div><p style="font-size:.85rem;color:var(--gy5)">${d.no}</p>`}else if(type==='fert'&&d){body.innerHTML=`<h2>🧪 ${t('cardFert')}</h2><ul>${d.fe.map(f=>`<li><strong>${f.n}</strong> — ${f.dt}</li>`).join('')}</ul><div class="modal-section"><strong>${t('fertTips')}</strong><p>${d.ft}</p></div>`}else if(type==='farm'){const fm=d?d.fm:(DB[0][lang]||DB[0].en).fm;const cn=result?result.crop:'Tomato';body.innerHTML=`<h2>🌱 ${t('cardFarm')} – ${cn}</h2><div class="modal-section"><strong>${t('soil')}</strong><p>${fm.so}</p></div><div class="modal-section"><strong>${t('sow')}</strong><p>${fm.sw}</p></div><div class="modal-section"><strong>${t('irr')}</strong><p>${fm.ir}</p></div><div class="modal-section"><strong>${t('nut')}</strong><p>${fm.nu}</p></div><div class="modal-section"><strong>${t('pest')}</strong><p>${fm.pe}</p></div><div class="modal-section"><strong>${t('harv')}</strong><p>${fm.ha}</p></div><button class="btn btn-primary" style="margin-top:.5rem" onclick="closeModal();showSec('guide');renderGuide('${cn}')">${t('viewGuide')} →</button>`}document.getElementById('modalOverlay').classList.add('show')}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('show')}
+function showSec(name){document.getElementById('sec-home').style.display=name==='home'?'block':'none';['guide','crop','history'].forEach(s=>document.getElementById('sec-'+s).classList.toggle('show',name===s));document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));const a=document.querySelector(`.nav-link[data-s="${name}"]`);if(a)a.classList.add('active');else document.querySelector('.nav-link[data-s="home"]')?.classList.add('active');if(name==='history')renderHist();if(name==='crop')renderCrops();if(name==='guide')renderGuide(result?result.crop:'Tomato');window.scrollTo({top:0,behavior:'smooth'})}
+function renderGuide(crop){let e=DB.find(d=>d.crop===crop)||DB[0];const d=e[lang]||e.en;const f=d.fm;document.getElementById('guideTitle').innerHTML=`📖 ${t('fullGuide')} – ${crop}`;document.getElementById('guideContent').innerHTML=`<div class="guide-block" style="background:var(--g0)"><strong>1. ${t('soil')}</strong><p>${f.so}</p></div><div class="guide-block" style="background:#eef5fc"><strong>2. ${t('sow')}</strong><p>${f.sw}</p></div><div class="guide-block" style="background:var(--o1)"><strong>3. ${t('irr')}</strong><p>${f.ir}</p></div><div class="guide-block" style="background:var(--p1)"><strong>4. ${t('nut')}</strong><p>${f.nu}</p></div><div class="guide-block" style="background:#fde8e8"><strong>5. ${t('pest')}</strong><p>${f.pe}</p></div><div class="guide-block" style="background:#f0f0f0"><strong>6. ${t('harv')}</strong><p>${f.ha}</p></div>`}
+function renderCrops(){document.getElementById('cropGrid').innerHTML=CROPS.map(c=>`<div class="crop-card" onclick="selectCrop('${c.n}')"><div class="emoji">${c.e}</div><strong>${c.n}</strong><span>${c.s}</span></div>`).join('')}
+function selectCrop(n){toast(t('cropLoad')+' '+n);showSec('guide');renderGuide(n)}
+function renderHist(){const list=document.getElementById('histList');if(!hist.length){list.innerHTML=`<p style="color:var(--gy5);font-size:.9rem">${t('histEmpty')}</p>`;return}list.innerHTML=hist.map(h=>`<div class="history-item"><img src="${h.img}" alt=""/><div class="info"><strong>${h.name}</strong><span>${h.sci} · ${h.conf}% · ${h.tag}</span><span style="display:block;margin-top:2px">${h.date}</span></div></div>`).join('')}
+function dlReport(){if(!result){toast(t('needResult'));return}const d=result[lang]||result.en;const text=`PlantGuard AI Report\n====================\nDate: ${new Date().toLocaleString()}\nLang: ${lang}\nDisease: ${d.n}\nSci: ${d.s}\nType: ${d.t}\nConfidence: ${result.conf}%\n\nDescription:\n${d.d}\n\nAdvice:\n${d.a}\n\nTreatment:\n${d.tr.map((x,i)=>(i+1)+'. '+x).join('\\n')}\n\nCure:\n${d.cu.map((x,i)=>(i+1)+'. '+x).join('\\n')}\n\nPrevention:\n${d.pr.map((x,i)=>(i+1)+'. '+x).join('\\n')}\n\nFertilizers:\n${d.fe.map((f,i)=>(i+1)+'. '+f.n+' — '+f.dt).join('\\n')}\n\nFarming:\nSoil: ${d.fm.so}\nSowing: ${d.fm.sw}\nIrrigation: ${d.fm.ir}\nNutrient: ${d.fm.nu}\nPest: ${d.fm.pe}\nHarvest: ${d.fm.ha}\n\nNotes: ${d.no}\n\n---\nPlantGuard AI`;const blob=new Blob([text],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='PlantGuard_Report_'+Date.now()+'.txt';a.click();toast(t('reportOk'))}
+function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+/* ===== Voice Response (multi-language) ===== */
+const VOICE_LANG={en:"en-IN",hi:"hi-IN",te:"te-IN"};
+let isSpeaking=false;
+function getVoiceText(){
+  if(!result)return"";
+  const d=result[lang]||result.en;
+  const tips=(d.tr||[]).slice(0,3).join(". ");
+  return d.n+". "+t("confidence")+" "+result.conf+" percent. "+d.a+". "+t("cardTreat")+": "+tips;
+}
+function pickVoice(langCode){
+  const voices=window.speechSynthesis.getVoices();
+  if(!voices.length)return null;
+  let v=voices.find(x=>x.lang===langCode)||voices.find(x=>x.lang.startsWith(langCode.split("-")[0]));
+  if(!v&&langCode.startsWith("te"))v=voices.find(x=>x.lang.startsWith("hi"))||voices.find(x=>x.lang.startsWith("en"));
+  return v||voices.find(x=>x.lang.startsWith("en"))||voices[0];
+}
+function stopSpeaking(){
+  window.speechSynthesis.cancel();
+  isSpeaking=false;
+  const btn=document.getElementById("voiceBtn");
+  if(btn){btn.classList.remove("speaking");btn.innerHTML='<span class="voice-icon">🔊</span> <span data-i18n="voiceListen">'+t("voiceListen")+"</span>";}
+}
+function speakResult(){
+  if(!result){toast(t("needResult"));return;}
+  if(!("speechSynthesis" in window)){toast("Voice not supported in this browser");return;}
+  if(isSpeaking){stopSpeaking();return;}
+  const text=getVoiceText();
+  if(!text)return;
+  stopSpeaking();
+  const utter=new SpeechSynthesisUtterance(text);
+  const langCode=VOICE_LANG[lang]||"en-IN";
+  utter.lang=langCode;
+  utter.rate=0.92;
+  utter.pitch=1;
+  utter.volume=1;
+  const go=()=>{
+    const voice=pickVoice(langCode);
+    if(voice)utter.voice=voice;
+    isSpeaking=true;
+    const btn=document.getElementById("voiceBtn");
+    if(btn){btn.classList.add("speaking");btn.innerHTML='<span class="voice-icon">⏹️</span> <span>'+t("voiceSpeaking")+"</span>";}
+    utter.onend=()=>stopSpeaking();
+    utter.onerror=()=>stopSpeaking();
+    window.speechSynthesis.speak(utter);
+  };
+  if(window.speechSynthesis.getVoices().length===0){
+    window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;go();};
+    window.speechSynthesis.getVoices();
+  }else go();
+}
+
+/* Boot */
+initLeafIntro();
+applyI18n();
+renderCrops();
+</script>
+</body>
+</html>

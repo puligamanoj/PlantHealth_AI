@@ -1,0 +1,3 @@
+# Model pipeline
+Architecture: Torchvision MobileNetV2 with a replaced final classifier sized to the folder dataset's class count. Input is RGB 224×224, ImageNet normalization; training includes horizontal flips, small rotations and mild color jitter. The training script uses a seeded 80/20 random split and logs validation accuracy. This simple split is for reproducible initial training only; for project evaluation, create separate train/validation/test folders and evaluate on test data untouched during training. Never cite training/validation accuracy as a held-out test score.
+Checkpoint includes ordered class names and state dict. API inference uses exactly that class order. No pre-trained weights are assumed or downloaded automatically.
